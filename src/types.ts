@@ -72,6 +72,9 @@ export interface Env {
   SLACK_WEBHOOK_URL?: string;
   EMAIL_API_KEY?: string;
   HEARTBEAT_URL?: string;
+  /** Shared secret guarding the manual `/run` HTTP endpoint. If set, `/run` requires
+   *  `?key=<RUN_TOKEN>`. If unset (e.g. local dev), `/run` is open. */
+  RUN_TOKEN?: string;
 }
 
 /** RBI feed descriptor. */

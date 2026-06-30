@@ -58,6 +58,9 @@ curl "http://localhost:8787/run?seed=1"   # FIRST: seed every source WITHOUT ale
 curl "http://localhost:8787/run"          # subsequent: alert only genuinely new items
 ```
 
+> In production set a `RUN_TOKEN` secret; then `/run` requires `?key=<RUN_TOKEN>`
+> (e.g. `curl ".../run?key=$RUN_TOKEN&seed=1"`). Locally, with no `RUN_TOKEN`, it's open.
+
 `GET /run` returns a JSON run report (per-source `fetched`/`alerted`/`ok`). The default
 notifier is `console`, so alerts appear in the `wrangler dev` log.
 
@@ -98,6 +101,7 @@ Non-secret knobs live in `wrangler.toml` `[vars]`; secrets are Worker secrets.
 | `EMAIL_FROM` | — | Verified Resend sender, e.g. `Monitor <alerts@domain>`. Required for email. |
 | `EMAIL_TO` | `new-direction-alert@googlegroups.com` | Email recipient (the Google Group). |
 | `HEARTBEAT_URL` | — *(secret)* | Pinged after each successful run. |
+| `RUN_TOKEN` | — *(secret)* | If set, the manual `/run` endpoint requires `?key=<RUN_TOKEN>` (else open). Set it in production. |
 
 Cron schedule is the one line `crons = [...]` in `wrangler.toml`.
 

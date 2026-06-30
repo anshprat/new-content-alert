@@ -13,3 +13,7 @@ EMAIL_API_KEY=
 # Optional healthcheck/heartbeat URL pinged after each successful run
 # (e.g. a healthchecks.io / Better Uptime ping URL) so a silently dead cron is detectable.
 HEARTBEAT_URL=
+
+# Optional shared secret guarding the manual /run endpoint. If set, /run requires
+# ?key=<RUN_TOKEN>. Leave blank locally; set it as a Worker secret in production.
+RUN_TOKEN=
