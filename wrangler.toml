@@ -28,7 +28,8 @@ enabled = true
 # Comma-separated. Remove a source to stop polling it.
 ENABLED_SOURCES = "RBI,IRDAI,NPCI"
 # Comma-separated notifier ids: console | slack | email
-ACTIVE_NOTIFIERS = "console"
+# email activates only when EMAIL_API_KEY (secret) + EMAIL_FROM are both set, else it skips.
+ACTIVE_NOTIFIERS = "console,email"
 # Max rows/items to inspect per source surface (change detection needs only the top).
 TOP_N = "25"
 # Drop seen ids whose first-seen is older than this many days (bounds KV growth).
@@ -44,5 +45,5 @@ FETCH_RETRIES = "2"
 # as a secret, and uncomment EMAIL_FROM below (must be a Resend-verified sender). EMAIL_TO
 # defaults to the Google Group; override here if needed. The recipient group must accept
 # mail from EMAIL_FROM.
-# EMAIL_FROM = "Regulatory Monitor <alerts@your-verified-domain>"
+EMAIL_FROM = "Regulatory Update Monitor <alerts@notify.e3l.in>"
 EMAIL_TO = "new-direction-alert@googlegroups.com"
