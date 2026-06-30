@@ -83,18 +83,6 @@ export interface IrdaiPage {
   category: string;
 }
 
-/**
- * NPCI product surface. NPCI is a React SPA backed by a JSON API; `slug` is the
- * internal API key (NOT always the URL segment) and may need a one-time capture —
- * see VERIFICATION.md. When `slug` is empty the adapter logs and skips it.
- */
-export interface NpciProduct {
-  /** Human/category label, e.g. "upi". */
-  product: string;
-  /** Internal API slug used by the circulars endpoint. Empty => skipped. */
-  slug: string;
-}
-
 /** Fully resolved, typed configuration (built once per run from Env). */
 export interface ResolvedConfig {
   enabledSources: SourceName[];
@@ -111,11 +99,12 @@ export interface ResolvedConfig {
   npci: {
     /** API origin. */
     baseUrl: string;
-    /** Path of the file-listing endpoint (params appended as query string). */
-    listPath: string;
-    products: NpciProduct[];
+    /** Product path segments, e.g. ["upi","imps",...]. The product is the path segment
+     *  in `/api/circulars/<product>` — there is no separate slug. */
+    products: string[];
+    /** Calendar years to query per product (e.g. [2026, 2025]) — covers the year-rollover. */
+    years: number[];
     pageSize: number;
-    sortBy: string;
   };
 
   slackWebhookUrl?: string;

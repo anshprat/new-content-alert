@@ -11,7 +11,7 @@ re-check when a source changes. Verified on **2026-06-30**.
 | RBI | `notifications_rss.xml` | ✅ Verified live | numeric `Id` | RSS 2.0, items current (24–29 Jun 2026). |
 | RBI | `pressreleases_rss.xml` | ✅ Verified live | numeric `prid` | RSS 2.0, current (30 Jun 2026). |
 | IRDAI | `/circulars` | ✅ Verified live | `documentId` | Server-rendered Liferay table; parser written against captured HTML. |
-| NPCI | `/api/circulars/searchByName/` | ⚠️ Shape verified, slug pending | `product:fileId` | React SPA + Strapi JSON API; needs a one-time slug capture (below). |
+| NPCI | `/api/circulars/<product>` | ✅ Verified live (CDP) | `product:fileId` | React SPA + Strapi JSON API; real endpoint + item shape captured via headless Chrome. |
 | robots.txt (all) | `/robots.txt` | ⚠️ See "robots.txt" | — | RBI 418; IRDAI/NPCI disallow unnamed bots. Deviation accepted (below). |
 
 ## RBI — RSS (verified)
@@ -64,30 +64,34 @@ The brief assumed a static HTML listing. **That is no longer true.** Findings:
   approach no longer works.
 - Circular pages are split across ~12 product surfaces (UPI, IMPS, RuPay, NACH, NETC,
   AePS, NFS, CTS, BBPS, *99#, BHIM-Aadhaar, e-RUPI) — there is no single listing.
-- **Confirmed endpoints** (probed live, returns JSON):
-  - `GET /api/circulars-and-notifications-page/<product>` → page **config** (tabs, sort
-    options, year filter) — verified 200 for `upi`. Does **not** contain the file list.
-  - `GET /api/circulars/searchByName/?slug=<slug>&pageNum=1&size=<n>&sortBy=desc`
-    → `{ status: 200, data: { files: [ … ], totalCount } }` — this is the **file list**.
-    The request param names (`slug`, `pageNum`, `size`, `year`, `sortBy`, `searchKey`)
-    and the `data.files[]` response were read from the app bundle.
-- **Not pinnable headlessly — the exact `slug` value per product.** The SPA feeds
-  `slug` from a separate dropdown XHR; `slug=upi` / `UPI` / numeric id all returned the
-  app's `{"status":404,"message":"Data not found"}` envelope. Capturing it needs a real
-  browser session (below). Until set, the NPCI adapter **logs and skips** each product
-  (benign — it does not fail the run or block RBI/IRDAI).
-- **The `files[]` item field names are assumed** (mapped tolerantly across `title|name`,
-  `url|fileUrl|file|link`, `publishedAt|date|circularDate|updatedAt`, `id|documentId`).
-  Re-check against a real response and tighten `parseNpciResponse` if needed.
-
-### How to capture the NPCI slug (one-time)
-
-1. Open `https://www.npci.org.in/circulars/upi` in Chrome.
-2. DevTools → **Network** tab → filter `circulars`.
-3. Find the request to `…/api/circulars/searchByName/…` and read its `slug` query param.
-4. Put that value in `src/config.ts` → `npci.products[].slug` for each product.
-5. Re-run `GET /run?seed=1` to seed NPCI, then normal runs will alert. No code change
-   needed — the adapter is fully config-driven.
+- **Confirmed file-listing endpoint (captured live by driving headless Chrome via the
+  Chrome DevTools Protocol):**
+  ```
+  GET /api/circulars/<product>?pageNum=1&year=<YYYY>&sort=desc&size=<n>&locale=en
+    -> { status: 200, data: { pageNum, size, totalCount, files: [ … ] } }
+  ```
+  - The **product is the path segment** (`upi`, `imps`, `rupay`, `nach`, `netc`, `aeps`,
+    `others`, …) — there is **no separate slug**. (Earlier `slug`-based guesses returned
+    `{"status":404,"message":"Data not found"}` because the listing endpoint is path-based
+    and the required `year`/`sort`/`locale` params were missing.)
+  - `year` is **required**; the SPA defaults to the latest year that has data (e.g. `others`
+    showed `2025`, others `2026`). The adapter queries **current + previous calendar year**
+    per product and merges, so new circulars are caught across the year rollover.
+  - Confirmed `files[]` item shape:
+    ```json
+    { "id": 3941, "fileName": "UPI | OC No. 100B | FY 2026-27 …", "mediaType": "pdf",
+      "isDownloadable": true, "isViewable": true, "yearLabel": "FY 26-27",
+      "media": { "url": "/uploads/UPI_OC_No_100_B_…_e88d1b6cd2.pdf" } }
+    ```
+    → `id` = numeric (dedup key, namespaced `product:id`); `fileName` = title;
+    `media.url` = link (relative → absolutised). **No per-item date field** — only a coarse
+    `yearLabel`, so `publishedAt` falls back to fetch time (dedup is by id).
+- **Capture method (reproducible):** `scripts/capture-npci-endpoint.mjs` launches Chrome
+  `--headless=new` with `--remote-debugging-port`, attaches over CDP, enables the `Network`
+  domain, navigates each `/circulars/<product>` page, and records the `/api/circulars/…`
+  XHR the SPA fires. Re-run it if NPCI's API changes.
+- **Re-check if NPCI changes:** the path shape, the `year/sort/size/locale` params, and the
+  `fileName` / `media.url` fields. The adapter logs per-request failures and continues.
 
 ## robots.txt — checked, deviation accepted
 

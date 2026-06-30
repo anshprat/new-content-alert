@@ -1,33 +1,18 @@
-import type { AdapterContext, Item, NpciProduct, SourceAdapter } from "../types";
+import type { AdapterContext, Item, SourceAdapter } from "../types";
 
 /**
  * NPCI is a React SPA backed by a Strapi JSON API (its old server-rendered HTML
- * with `.pdf-item` rows no longer exists). Confirmed live (see VERIFICATION.md):
+ * with `.pdf-item` rows no longer exists). The real file-listing endpoint was
+ * captured live by driving Chrome via CDP (see VERIFICATION.md):
  *
- *   GET /api/circulars/searchByName/?slug=<slug>&pageNum=1&size=<n>&sortBy=desc
- *     -> { status: 200, data: { files: [ ... ], totalCount, ... } }
+ *   GET /api/circulars/<product>?pageNum=1&year=<YYYY>&sort=desc&size=<n>&locale=en
+ *     -> { status: 200, data: { pageNum, size, totalCount, files: [ … ] } }
  *
- * The per-product `slug` is the internal API key (fed from a separate dropdown
- * XHR; it is NOT reliably the URL segment) and must be captured once via browser
- * DevTools — until then the product is skipped, not errored. The `files[]` item
- * shape is mapped tolerantly across likely field names and should be re-checked
- * against a real response (steps in VERIFICATION.md).
+ *   file = { id, fileName, mediaType, isDownloadable, isViewable, yearLabel, media: { url } }
+ *
+ * The product is the path segment (no separate slug). There is no per-item date,
+ * so publishedAt falls back to fetch time — dedup is by the stable numeric id.
  */
-
-function pickString(obj: Record<string, unknown>, keys: string[]): string {
-  for (const k of keys) {
-    const v = obj[k];
-    if (typeof v === "string" && v.trim()) return v.trim();
-    if (typeof v === "number") return String(v);
-  }
-  return "";
-}
-
-function toIso(s: string, fallbackIso: string): string {
-  if (!s) return fallbackIso;
-  const t = Date.parse(s);
-  return Number.isFinite(t) ? new Date(t).toISOString() : fallbackIso;
-}
 
 function absolutize(url: string, baseUrl: string): string {
   if (!url) return url;
@@ -38,7 +23,7 @@ function absolutize(url: string, baseUrl: string): string {
   }
 }
 
-/** Pure parser of the file-listing response (unit-tested against a synthetic fixture). */
+/** Pure parser of the file-listing response (unit-tested against a captured fixture). */
 export function parseNpciResponse(
   json: unknown,
   product: string,
@@ -47,46 +32,35 @@ export function parseNpciResponse(
   nowIso: string,
 ): Item[] {
   const data = (json as any)?.data;
-  const files = Array.isArray(data?.files) ? data.files : Array.isArray(data) ? data : [];
+  const files = Array.isArray(data?.files) ? data.files : [];
   const items: Item[] = [];
 
   for (const f of files.slice(0, topN)) {
     if (!f || typeof f !== "object") continue;
-    const file = f as Record<string, unknown>;
-    const title = pickString(file, ["title", "name", "fileName", "heading", "circularName"]);
-    const url = absolutize(
-      pickString(file, ["url", "fileUrl", "file", "link", "path", "documentUrl"]),
-      baseUrl,
-    );
-    if (!title || !url) continue;
-    const id =
-      pickString(file, ["id", "documentId", "fileId", "circularId"]) || url;
-    const date = pickString(file, [
-      "publishedAt",
-      "date",
-      "circularDate",
-      "uploadDate",
-      "updatedAt",
-      "createdAt",
-    ]);
+    const file = f as Record<string, any>;
+    const title = typeof file.fileName === "string" ? file.fileName.trim() : "";
+    const rawUrl = typeof file.media?.url === "string" ? file.media.url : "";
+    if (!title || !rawUrl) continue;
+    const id = file.id !== undefined && file.id !== null ? String(file.id) : rawUrl;
     items.push({
       id: `${product}:${id}`,
       source: "NPCI",
       category: "circular",
       title,
-      url,
-      publishedAt: toIso(date, nowIso),
+      url: absolutize(rawUrl, baseUrl),
+      publishedAt: nowIso, // API exposes only a coarse FY label, not a date
     });
   }
   return items;
 }
 
-function buildUrl(baseUrl: string, listPath: string, p: NpciProduct, size: number, sortBy: string): string {
-  const u = new URL(listPath, baseUrl);
-  u.searchParams.set("slug", p.slug);
+function buildUrl(baseUrl: string, product: string, year: number, size: number): string {
+  const u = new URL(`/api/circulars/${encodeURIComponent(product)}`, baseUrl);
   u.searchParams.set("pageNum", "1");
+  u.searchParams.set("year", String(year));
+  u.searchParams.set("sort", "desc");
   u.searchParams.set("size", String(size));
-  u.searchParams.set("sortBy", sortBy);
+  u.searchParams.set("locale", "en");
   return u.toString();
 }
 
@@ -95,37 +69,34 @@ export const npciAdapter: SourceAdapter = {
   async fetchLatest(ctx: AdapterContext): Promise<Item[]> {
     const nowIso = new Date().toISOString();
     const cfg = ctx.config.npci;
-    const configured = cfg.products.filter((p) => p.slug.trim().length > 0);
-
-    if (configured.length === 0) {
-      // Expected state until slugs are captured — benign, not a failure.
-      ctx.log.warn("NPCI not configured: no product slugs set; skipping (see VERIFICATION.md)");
-      return [];
-    }
-
-    const all: Item[] = [];
+    const byId = new Map<string, Item>();
     let anyOk = false;
-    for (const p of configured) {
-      const url = buildUrl(cfg.baseUrl, cfg.listPath, p, cfg.pageSize, cfg.sortBy);
-      try {
-        const json = await ctx.fetcher.fetchJson(url);
-        if ((json as any)?.status && (json as any).status !== 200) {
-          ctx.log.warn("npci product returned non-200 envelope", {
-            product: p.product,
-            status: (json as any).status,
-          });
-          anyOk = true; // endpoint reachable; just no data for this slug
-          continue;
+
+    // product × year fan-out. Both years are queried so circulars are caught across
+    // the rollover; results are merged and de-duped by id.
+    for (const product of cfg.products) {
+      for (const year of cfg.years) {
+        const url = buildUrl(cfg.baseUrl, product, year, cfg.pageSize);
+        try {
+          const json = await ctx.fetcher.fetchJson(url);
+          anyOk = true;
+          const status = (json as any)?.status;
+          if (status && status !== 200) {
+            // e.g. {"status":404,"message":"Data not found"} for a year with no items — benign.
+            continue;
+          }
+          for (const item of parseNpciResponse(json, product, cfg.baseUrl, ctx.config.topN, nowIso)) {
+            if (!byId.has(item.id)) byId.set(item.id, item);
+          }
+        } catch (err) {
+          ctx.log.error("npci request failed", { product, year, error: String(err) });
         }
-        const items = parseNpciResponse(json, p.product, cfg.baseUrl, ctx.config.topN, nowIso);
-        ctx.log.info("npci product parsed", { product: p.product, items: items.length });
-        all.push(...items);
-        anyOk = true;
-      } catch (err) {
-        ctx.log.error("npci product failed", { product: p.product, error: String(err) });
       }
     }
-    if (!anyOk) throw new Error("NPCI: all configured products failed");
-    return all;
+
+    if (!anyOk) throw new Error("NPCI: all requests failed");
+    const items = [...byId.values()];
+    ctx.log.info("npci parsed", { products: cfg.products.length, years: cfg.years, items: items.length });
+    return items;
   },
 };

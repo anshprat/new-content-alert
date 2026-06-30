@@ -134,5 +134,5 @@ Cron schedule is the one line `crons = [...]` in `wrangler.toml`.
   per source keeps writes to a handful per run. (D1 would be the choice only if we later
   wanted queryable history.)
 
-See **VERIFICATION.md** for exactly what was confirmed live, the NPCI slug-capture step,
-and the documented robots.txt deviation.
+See **VERIFICATION.md** for exactly what was confirmed live (including how the NPCI JSON
+API endpoint was captured via headless Chrome/CDP) and the documented robots.txt deviation.

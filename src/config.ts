@@ -61,23 +61,15 @@ export function buildConfig(env: Env, opts: { seed?: boolean } = {}): ResolvedCo
 
     npci: {
       baseUrl: "https://www.npci.org.in",
-      // Confirmed file-listing endpoint shape (see VERIFICATION.md):
-      //   GET /api/circulars/searchByName/?slug=<slug>&pageNum=1&size=<n>&sortBy=desc
-      //   -> { status, data: { files: [...], totalCount } }
-      listPath: "/api/circulars/searchByName/",
-      // `slug` per product is the internal API key. Left blank until captured via
-      // browser DevTools (steps in VERIFICATION.md); blank slugs are skipped, not errored.
-      products: [
-        { product: "upi", slug: "" },
-        { product: "imps", slug: "" },
-        { product: "rupay", slug: "" },
-        { product: "nach", slug: "" },
-        { product: "netc", slug: "" },
-        { product: "aeps", slug: "" },
-        { product: "others", slug: "" },
-      ],
+      // Confirmed file-listing endpoint (captured live via Chrome/CDP — see VERIFICATION.md):
+      //   GET /api/circulars/<product>?pageNum=1&year=<YYYY>&sort=desc&size=<n>&locale=en
+      //   -> { status: 200, data: { files: [{ id, fileName, media:{url}, yearLabel }], totalCount } }
+      // The product is the path segment; no separate slug is needed.
+      products: ["upi", "imps", "rupay", "nach", "netc", "aeps", "others"],
+      // `year` is required by the API. Query the current + previous calendar year so
+      // newly-filed circulars are caught across the year rollover (some products lag a year).
+      years: [new Date().getFullYear(), new Date().getFullYear() - 1],
       pageSize: 25,
-      sortBy: "desc",
     },
 
     slackWebhookUrl: env.SLACK_WEBHOOK_URL || undefined,
