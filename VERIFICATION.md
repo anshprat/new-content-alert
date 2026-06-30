@@ -54,7 +54,7 @@ re-check when a source changes. Verified on **2026-06-30**.
 - `/rules` and `/regulations` are the same portlet; left commented in config to enable
   after a quick confirm.
 
-## NPCI — JSON API (shape verified; per-product slug pending)
+## NPCI — JSON API (verified live via Chrome/CDP; works from the Worker)
 
 The brief assumed a static HTML listing. **That is no longer true.** Findings:
 
@@ -92,6 +92,10 @@ The brief assumed a static HTML listing. **That is no longer true.** Findings:
   XHR the SPA fires. Re-run it if NPCI's API changes.
 - **Re-check if NPCI changes:** the path shape, the `year/sort/size/locale` params, and the
   `fileName` / `media.url` fields. The adapter logs per-request failures and continues.
+- **Verified live from the deployed Worker:** a production run fetched **100 circulars**
+  across the 7 products × (current + previous year) with the plain descriptive `User-Agent`
+  — the **JSON API responds to a normal `fetch()`** even though the NPCI *HTML page* is a JS
+  shell. No browser-fingerprint spoofing was needed.
 
 ## robots.txt — checked, deviation accepted
 
@@ -106,7 +110,8 @@ top-N-only, no-PDF** personal monitor of public regulatory notices, with a descr
 `User-Agent`. This is a deliberate, documented deviation from IRDAI/NPCI robots.txt. To
 honour robots.txt strictly instead, set `ENABLED_SOURCES = "RBI"`.
 
-> Manners note: the configured `USER_AGENT` is descriptive (identifies the monitor).
-> NPCI's API may only return data to browser-like clients; if so, the adapter logs and
-> skips rather than spoofing a browser. Pacing is hourly with per-request timeout, retry
-> with backoff, and jitter.
+> Manners note: the configured `USER_AGENT` is descriptive (identifies the monitor) and
+> proved sufficient for all three sources in production — RBI RSS, IRDAI HTML, and the NPCI
+> JSON API all returned data to the deployed Worker, so no browser spoofing is used. Pacing
+> is hourly with per-request timeout, retry with backoff, and jitter; any per-source failure
+> is logged and skipped without affecting the others.
