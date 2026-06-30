@@ -1,0 +1,20 @@
+{
+  "status": 200,
+  "data": {
+    "totalCount": 2,
+    "files": [
+      {
+        "id": 4821,
+        "title": "Circular on UPI transaction limits",
+        "fileUrl": "/uploads/upi_limits_2026.pdf",
+        "circularDate": "2026-06-20"
+      },
+      {
+        "id": 4799,
+        "name": "Operating guidelines for UPI Lite",
+        "file": "https://www.npci.org.in/uploads/upi_lite.pdf",
+        "publishedAt": "2026-06-12T00:00:00.000Z"
+      }
+    ]
+  }
+}

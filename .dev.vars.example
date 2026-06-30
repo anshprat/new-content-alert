@@ -1,0 +1,14 @@
+# Copy to `.dev.vars` for local `wrangler dev`, and set the same values as Worker
+# secrets in production with `wrangler secret put <NAME>` (sourced from Doppler).
+# `.dev.vars` is git-ignored. None of these are required to run — the monitor
+# falls back to the console notifier and skips the heartbeat when they are unset.
+
+# Slack Incoming Webhook URL — enables the Slack notifier (add "slack" to ACTIVE_NOTIFIERS).
+SLACK_WEBHOOK_URL=
+
+# Email provider API key — placeholder for the (stub) email notifier.
+EMAIL_API_KEY=
+
+# Optional healthcheck/heartbeat URL pinged after each successful run
+# (e.g. a healthchecks.io / Better Uptime ping URL) so a silently dead cron is detectable.
+HEARTBEAT_URL=
