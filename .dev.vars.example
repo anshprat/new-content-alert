@@ -6,7 +6,8 @@
 # Slack Incoming Webhook URL — enables the Slack notifier (add "slack" to ACTIVE_NOTIFIERS).
 SLACK_WEBHOOK_URL=
 
-# Email provider API key — placeholder for the (stub) email notifier.
+# Resend API key — enables the email notifier (add "email" to ACTIVE_NOTIFIERS).
+# Also set EMAIL_FROM (a verified Resend sender) and optionally EMAIL_TO in wrangler.toml [vars].
 EMAIL_API_KEY=
 
 # Optional healthcheck/heartbeat URL pinged after each successful run

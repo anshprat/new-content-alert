@@ -65,6 +65,9 @@ export interface Env {
   USER_AGENT?: string;
   FETCH_TIMEOUT_MS?: string;
   FETCH_RETRIES?: string;
+  // Email notifier config (EMAIL_FROM/EMAIL_TO are plain vars; EMAIL_API_KEY is a secret):
+  EMAIL_FROM?: string;
+  EMAIL_TO?: string;
   // Secrets (unset unless configured):
   SLACK_WEBHOOK_URL?: string;
   EMAIL_API_KEY?: string;
@@ -109,6 +112,10 @@ export interface ResolvedConfig {
 
   slackWebhookUrl?: string;
   emailApiKey?: string;
+  /** Verified sender, e.g. "Regulatory Monitor <alerts@example.com>". Required for email. */
+  emailFrom?: string;
+  /** Recipient (defaults to the configured Google Group). */
+  emailTo: string;
   heartbeatUrl?: string;
 }
 

@@ -21,7 +21,11 @@ export function selectNotifiers(config: ResolvedConfig, log: Logger): Notifier[]
         else log.warn("slack notifier selected but SLACK_WEBHOOK_URL is unset; skipping");
         break;
       case "email":
-        out.push(createEmailNotifier(config.emailApiKey, log));
+        if (config.emailApiKey && config.emailFrom) {
+          out.push(createEmailNotifier(config.emailApiKey, config.emailFrom, config.emailTo));
+        } else {
+          log.warn("email notifier selected but EMAIL_API_KEY and/or EMAIL_FROM unset; skipping");
+        }
         break;
       default:
         log.warn("unknown notifier id; ignoring", { id });

@@ -74,6 +74,8 @@ export function buildConfig(env: Env, opts: { seed?: boolean } = {}): ResolvedCo
 
     slackWebhookUrl: env.SLACK_WEBHOOK_URL || undefined,
     emailApiKey: env.EMAIL_API_KEY || undefined,
+    emailFrom: env.EMAIL_FROM || undefined,
+    emailTo: env.EMAIL_TO || "new-direction-alert@googlegroups.com",
     heartbeatUrl: env.HEARTBEAT_URL || undefined,
   };
 }

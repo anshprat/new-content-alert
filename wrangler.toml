@@ -39,3 +39,10 @@ USER_AGENT = "RegulatoryUpdateMonitor/1.0 (+https://github.com/anshprat/new-cont
 # Network timeout (ms) and retry count per fetch.
 FETCH_TIMEOUT_MS = "10000"
 FETCH_RETRIES = "2"
+
+# Email notifier (Resend). To enable: add "email" to ACTIVE_NOTIFIERS, set EMAIL_API_KEY
+# as a secret, and uncomment EMAIL_FROM below (must be a Resend-verified sender). EMAIL_TO
+# defaults to the Google Group; override here if needed. The recipient group must accept
+# mail from EMAIL_FROM.
+# EMAIL_FROM = "Regulatory Monitor <alerts@your-verified-domain>"
+EMAIL_TO = "new-direction-alert@googlegroups.com"

@@ -94,7 +94,9 @@ Non-secret knobs live in `wrangler.toml` `[vars]`; secrets are Worker secrets.
 | `USER_AGENT` | descriptive UA | Identifies the monitor. |
 | `FETCH_TIMEOUT_MS` / `FETCH_RETRIES` | `10000` / `2` | Per-request timeout and retries. |
 | `SLACK_WEBHOOK_URL` | — *(secret)* | Enables the Slack notifier. |
-| `EMAIL_API_KEY` | — *(secret)* | For the (stub) email notifier. |
+| `EMAIL_API_KEY` | — *(secret)* | Resend API key — enables the email notifier. |
+| `EMAIL_FROM` | — | Verified Resend sender, e.g. `Monitor <alerts@domain>`. Required for email. |
+| `EMAIL_TO` | `new-direction-alert@googlegroups.com` | Email recipient (the Google Group). |
 | `HEARTBEAT_URL` | — *(secret)* | Pinged after each successful run. |
 
 Cron schedule is the one line `crons = [...]` in `wrangler.toml`.
@@ -112,8 +114,17 @@ Cron schedule is the one line `crons = [...]` in `wrangler.toml`.
 
 - **Slack:** create an Incoming Webhook, set `SLACK_WEBHOOK_URL`, add `slack` to
   `ACTIVE_NOTIFIERS`. (Implemented in `src/notifiers/slack.ts`.)
-- **Email:** `src/notifiers/email.ts` is a no-op stub — implement against your email API
-  using `EMAIL_API_KEY`, then add `email` to `ACTIVE_NOTIFIERS`.
+- **Email (Resend → Google Group):** `src/notifiers/email.ts` posts one email per new item
+  via the [Resend](https://resend.com) API. To enable:
+  1. Create a Resend account and **verify a sender domain**; create an API key.
+  2. `wrangler secret put EMAIL_API_KEY` (the Resend key); set `EMAIL_FROM` (a verified
+     sender like `Regulatory Monitor <alerts@your-domain>`) in `wrangler.toml`. `EMAIL_TO`
+     defaults to `new-direction-alert@googlegroups.com`.
+  3. Add `email` to `ACTIVE_NOTIFIERS`.
+  4. Ensure the Google Group **accepts posts from `EMAIL_FROM`** — set it to *"Anyone on the
+     web can post"* or add the sender as an allowed poster, otherwise the group bounces it.
+  - To swap providers (SendGrid/SES/etc.), reimplement `notify()` in `email.ts`; the
+     `buildResendPayload` helper and notifier wiring are the only Resend-specific parts.
 - A **filter hook** (`applyFilter` in `src/core/run.ts`) is the place to add
   category/topic filtering later — it is identity today (out of scope).
 
