@@ -1,0 +1,49 @@
+name = "new-content-alert"
+main = "src/index.ts"
+compatibility_date = "2025-06-01"
+
+# Hourly cron. Same-day latency is fine; these sites publish in batches.
+# Change this one line to re-pace (e.g. "0 */3 * * *" for every 3 hours).
+# Free tier allows up to 3 cron triggers per Worker; we use 1.
+[triggers]
+crons = ["0 * * * *"]
+
+# Seen-state store. One key per source holds that source's seen-set, so a run
+# writes at most a handful of keys — far under the free 1k writes/day cap.
+# Create the namespace once with:  wrangler kv namespace create SEEN
+# then paste the returned id below (and a preview_id for `wrangler dev --remote`).
+[[kv_namespaces]]
+binding = "SEEN"
+id = "50c3a59d06684996bc747cccf0b0a4e5"
+
+[observability]
+enabled = true
+
+# ---------------------------------------------------------------------------
+# Non-secret configuration. Override any of these per-environment here.
+# Secrets (SLACK_WEBHOOK_URL, EMAIL_API_KEY, HEARTBEAT_URL) are NOT set here —
+# use `wrangler secret put <NAME>` (values sourced from Doppler). See README.
+# ---------------------------------------------------------------------------
+[vars]
+# Comma-separated. Remove a source to stop polling it.
+ENABLED_SOURCES = "RBI,IRDAI,NPCI"
+# Comma-separated notifier ids: console | slack | email
+# email activates only when EMAIL_API_KEY (secret) + EMAIL_FROM are both set, else it skips.
+ACTIVE_NOTIFIERS = "console,email"
+# Max rows/items to inspect per source surface (change detection needs only the top).
+TOP_N = "25"
+# Drop seen ids whose first-seen is older than this many days (bounds KV growth).
+RETENTION_DAYS = "90"
+# Descriptive User-Agent identifying the monitor (manners). See README/VERIFICATION
+# for the note on NPCI, which only returns data to browser-like clients.
+USER_AGENT = "RegulatoryUpdateMonitor/1.0 (+https://github.com/anshprat/new-content-alert; contact: anshu@noon.design)"
+# Network timeout (ms) and retry count per fetch.
+FETCH_TIMEOUT_MS = "10000"
+FETCH_RETRIES = "2"
+
+# Email notifier (Resend). To enable: add "email" to ACTIVE_NOTIFIERS, set EMAIL_API_KEY
+# as a secret, and uncomment EMAIL_FROM below (must be a Resend-verified sender). EMAIL_TO
+# defaults to the Google Group; override here if needed. The recipient group must accept
+# mail from EMAIL_FROM.
+EMAIL_FROM = "Regulatory Update Monitor <alerts@notify.e3l.in>"
+EMAIL_TO = "new-direction-alert@googlegroups.com"

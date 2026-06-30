@@ -1,0 +1,32 @@
+{
+  "status": 200,
+  "data": {
+    "pageNum": 1,
+    "size": 10,
+    "totalCount": 10,
+    "files": [
+      {
+        "id": 3941,
+        "fileName": "UPI | OC No. 100B | FY 2026-27  Addendum to Mandatory Brand Guidelines for BHIM UPI Merchant QR",
+        "mediaType": "pdf",
+        "isDownloadable": true,
+        "isViewable": true,
+        "yearLabel": "FY 26-27",
+        "media": {
+          "url": "/uploads/UPI_OC_No_100_B_FY_2026_27_Addendum_to_Mandatory_Brand_Guidelines_for_BHIM_UPI_Merchant_QR_e88d1b6cd2.pdf"
+        }
+      },
+      {
+        "id": 3942,
+        "fileName": "UPI | OC No. 234 | FY 2026-27 | Safeguarding User Information in UPI     ",
+        "mediaType": "pdf",
+        "isDownloadable": true,
+        "isViewable": true,
+        "yearLabel": "FY 26-27",
+        "media": {
+          "url": "/uploads/UPI_OC_No_234_FY_2026_27_Safeguarding_User_Information_in_UPI_6e5f07f90a.pdf"
+        }
+      }
+    ]
+  }
+}
